@@ -416,7 +416,7 @@
 
   .controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center; }
   /* ---------- title (bottom-left) ---------- */
-  #wakeTitle { position:absolute; z-index:9; left:clamp(18px,4vw,72px); bottom:clamp(22px,6vh,64px); color:#fff; pointer-events:none;
+  #wakeTitle { position:absolute; z-index:9; left:clamp(18px,4vw,72px); bottom:max(70px,clamp(22px,6vh,64px)); color:#fff; pointer-events:none;
     text-shadow:0 2px 18px rgba(8,14,48,.55), 0 1px 2px rgba(8,14,48,.4); transition:opacity 1s ease, transform 1s ease; }
   #wakeTitle h1 { margin:0; font:400 clamp(40px,5.2vw,96px)/.92 "Inter Tight","Helvetica Neue",Arial,sans-serif; letter-spacing:-.035em; }
   #wakeTitle h1 em { font:italic 400 1.08em/0 "Instrument Serif","Times New Roman",serif; letter-spacing:-.01em; }
@@ -618,10 +618,25 @@
     .ct-shade { background:linear-gradient(0deg, rgba(4,8,26,.7), rgba(4,8,26,.25) 32%, rgba(4,8,26,0) 48%); }
     .ct-q { font-size:22px; }
   }
+
+  /* ---------- background music + mute button ---------- */
+  .bgm-btn { position:fixed; z-index:4000; left:14px; bottom:14px; width:42px; height:42px; padding:0; border-radius:50%; display:grid; place-items:center; cursor:pointer;
+    color:#fff; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.55); -webkit-backdrop-filter:blur(14px) saturate(170%); backdrop-filter:blur(14px) saturate(170%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.55), 0 6px 20px rgba(25,20,70,.28); transition:background .2s, transform .2s; -webkit-tap-highlight-color:transparent; }
+  .bgm-btn:hover { background:rgba(255,255,255,.3); transform:scale(1.06); }
+  .bgm-btn svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; filter:drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+  .bgm-btn .off { display:none; } .bgm-btn.muted .on { display:none; } .bgm-btn.muted .off { display:inline; }
+  .bgm-btn .wave { animation:bgmWave 1.6s ease-in-out infinite; transform-origin:12px 12px; }
+  .bgm-btn.paused .wave { animation:none; opacity:.55; }
+  @keyframes bgmWave { 50% { opacity:.4; } }
+  @media (max-width:760px) { .ct-links { bottom:66px; } }
 </style>
 </head>
 <body class="locked">
 <section id="hero">
+<button class="bgm-btn paused" id="bgmBtn" type="button" aria-label="Mute music" aria-pressed="false">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><g class="on"><path class="wave" d="M15.5 9a4 4 0 0 1 0 6"/><path class="wave" style="animation-delay:.3s" d="M18 6.5a7.5 7.5 0 0 1 0 11"/></g><g class="off"><path d="M16 9.5l5 5M21 9.5l-5 5"/></g></svg>
+</button>
 <nav class="tabs" id="tabs" aria-label="Pages">
   <a href="#subway" data-go="subway">Skills</a><a href="#about" data-go="about">About Me</a><a href="#next" data-go="next">Made by Me</a><a href="#store" data-go="store">Experience</a><a href="#beach" data-go="beach">Projects</a><a href="#contact" data-go="contact">Contact</a>
 </nav>
@@ -1849,6 +1864,36 @@ const LINKEDIN_URL = 'https://www.linkedin.com/in/sienna-nguyen-b76392298/';
   layout();
   new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting && e.intersectionRatio>.15){ if(played) pv.play().catch(()=>{}); } else pv.pause();
     if(e.isIntersecting && e.intersectionRatio>.55) play(); }),{threshold:[0,.15,.55]}).observe(sec);
+})();
+/* ---------- background music: day track 7am-6pm (visitor's clock), night track otherwise ---------- */
+(()=>{
+  const VOL=.16, btn=document.getElementById('bgmBtn');
+  const mk=src=>{ const a=new Audio(src); a.loop=true; a.preload='auto'; a.volume=0; return a; };
+  const tracks={ day:mk('audio/day.mp3'), night:mk('audio/night.mp3') };
+  const isDay=()=>{ const h=new Date().getHours(); return h>=7 && h<18; };
+  let muted=false; try{ muted=localStorage.getItem('bgmMuted')==='1'; }catch(_){}
+  let started=false, duck=0, cur=null;
+  const level=()=> (muted||duck>0) ? 0 : VOL;
+  function fadeTo(a,v,ms=900){ cancelAnimationFrame(a._f); const v0=a.volume, t0=performance.now();
+    if(v>0 && a.paused) a.play().catch(()=>{});
+    (function step(t){ const k=Math.min(1,(t-t0)/ms); a.volume=Math.max(0,Math.min(1,v0+(v-v0)*k)); if(k<1) a._f=requestAnimationFrame(step); else if(v===0) a.pause(); })(t0); }
+  function sync(){ if(!started) return; const want=isDay()?'day':'night';
+    if(want!==cur){ if(cur) fadeTo(tracks[cur],0,2000); cur=want; }
+    fadeTo(tracks[cur],level()); }
+  function paint(){ btn.classList.toggle('muted',muted); btn.classList.toggle('paused',!started||muted);
+    btn.setAttribute('aria-pressed',String(muted)); btn.setAttribute('aria-label',muted?'Unmute music':'Mute music'); }
+  // browsers only allow sound after the visitor interacts, so start on the first click/tap/key
+  const kick=()=>{ if(started) return; started=true; ['pointerdown','keydown','touchstart'].forEach(ev=>removeEventListener(ev,kick,true)); paint(); sync(); };
+  ['pointerdown','keydown','touchstart'].forEach(ev=>addEventListener(ev,kick,true));
+  btn.addEventListener('click',e=>{ e.stopPropagation(); if(!started){ started=true; muted=false; } else muted=!muted;
+    try{ localStorage.setItem('bgmMuted',muted?'1':'0'); }catch(_){} paint(); sync(); });
+  // quiet the music while a video with sound is playing
+  const audible=v=>v instanceof HTMLVideoElement && !v.muted && !v.paused;
+  const recheck=()=>{ duck=[...document.querySelectorAll('video')].some(audible)?1:0; sync(); };
+  ['play','pause','ended','volumechange'].forEach(ev=>document.addEventListener(ev,e=>{ if(e.target.tagName==='VIDEO') recheck(); },true));
+  document.addEventListener('visibilitychange',()=>{ if(!cur) return; document.hidden ? tracks[cur].pause() : sync(); });
+  setInterval(sync,60000);   // switches tracks when the visitor's clock crosses 7am / 6pm
+  paint();
 })();
 /* ---------- clock: visitor's local time ---------- */
 (()=>{ const T=document.getElementById('clockT'), A=document.getElementById('clockAP'), D=document.getElementById('clockD');
