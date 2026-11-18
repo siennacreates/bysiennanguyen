@@ -329,6 +329,8 @@
   #tank img { position:absolute; display:block; will-change:transform; }
   .hang { position:absolute; pointer-events:auto; }
   .fish-link { position:absolute; z-index:6; display:block; cursor:pointer; border-radius:50%; -webkit-tap-highlight-color:transparent; }
+.gram-link { border-radius:40% 40% 12% 12%; transition:background .25s, box-shadow .25s; }
+.gram-link:hover, .gram-link:focus-visible { background:radial-gradient(closest-side, rgba(255,210,240,.28), rgba(255,210,240,0)); box-shadow:0 0 40px 6px rgba(255,190,230,.25); outline:none; }
   /* clickable lamps: warm glow */
   #lights { position:absolute; inset:0; z-index:1; pointer-events:none; }
   #lights .lit { position:absolute; opacity:0; transition:opacity .35s ease; }
@@ -1295,6 +1297,13 @@ const FX = { W:2358, H:1456,
   egg.addEventListener('click',e=>e.stopPropagation()); egg.addEventListener('pointerdown',e=>e.stopPropagation());
   egg.addEventListener('mouseenter',()=>fish[EGG.fish].bob=7); egg.addEventListener('mouseleave',()=>fish[EGG.fish].bob=3);
   stage.appendChild(egg);
+  // the flower gramophone opens Sienna's Spotify
+  const SPOTIFY='https://open.spotify.com/user/0qmrj2duw8jkzy34ox2lfa88l?si=4132a4ea5ba14a4b';
+  const gram=document.createElement('a'); gram.className='fish-link gram-link'; gram.href=SPOTIFY; gram.target='_blank'; gram.rel='noopener'; gram.title="Sienna's Spotify";
+  gram.setAttribute('aria-label',"Sienna's Spotify (opens in a new tab)");
+  Object.assign(gram.style,{left:pct(95,FX.W),top:pct(925,FX.H),width:pct(320,FX.W),height:pct(525,FX.H)});
+  gram.addEventListener('click',e=>e.stopPropagation()); gram.addEventListener('pointerdown',e=>e.stopPropagation());
+  stage.appendChild(gram);
   let last=performance.now(), swimOn=true;
   new IntersectionObserver(es=>es.forEach(e=>{ const was=swimOn; swimOn=e.isIntersecting; if(swimOn&&!was){ last=performance.now(); requestAnimationFrame(swim); } }),{threshold:0}).observe(stage);
   function swim(now){ if(!swimOn) return;
