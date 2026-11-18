@@ -630,6 +630,11 @@
   .bgm-btn.paused .wave { animation:none; opacity:.55; }
   @keyframes bgmWave { 50% { opacity:.4; } }
   @media (max-width:760px) { .ct-links { bottom:66px; } }
+
+  /* ---------- custom cursor (Usagi); a slightly bigger one over anything clickable ---------- */
+  html, body, body * { cursor:url(cursor.png) 20 20, auto !important; }
+  a, a *, button, button *, [role="button"], [role="button"] *, label, summary, .prod, .bc-dream, .tv-hit, .ct-portal, .ct-portal *, #cfCanvas.hover, #cm-c, #stMii, .st-mii, .about-mii, #stage
+    { cursor:url(cursor_hover.png) 24 24, pointer !important; }
 </style>
 </head>
 <body class="locked">
