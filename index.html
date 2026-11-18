@@ -192,7 +192,7 @@
   #store .about-say.show { transform:translateX(-50%) scale(1); }
   #store .about-say::after { left:calc(50% + var(--tx,0px)); top:auto; bottom:-13px; margin:0 0 0 -9px; width:18px; height:14px; clip-path:polygon(0 0,100% 0,50% 100%); }
   #store .sw-title { text-shadow:0 2px 18px rgba(0,0,0,.55); }
-  #subway .sw-title { top:27%; text-shadow:0 2px 18px rgba(20,30,70,.55), 0 1px 3px rgba(20,30,70,.45); }   /* sits at the handlebar */
+  #subway .sw-title { position:absolute !important; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }   /* drawn inside the window instead (kept for screen readers) */
   #goInside { position:absolute; z-index:6; right:clamp(18px,4vw,72px); bottom:clamp(26px,6.5vh,70px); padding:.62em 1.45em; font-size:clamp(13px,1.3vw,20px); cursor:pointer;
     opacity:0; transform:translateY(12px); pointer-events:none; transition:opacity .4s, transform .5s cubic-bezier(.3,1.6,.5,1); background:rgba(30,110,60,.35); }
   #goInside.show { opacity:1; transform:none; pointer-events:auto; }
@@ -684,6 +684,7 @@
     <defs>
       <linearGradient id="swSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a99be6"/><stop offset=".45" stop-color="#d9b2dc"/><stop offset=".72" stop-color="#f3c3c4"/><stop offset="1" stop-color="#f9d9b6"/></linearGradient>
       <radialGradient id="swSun" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff3d6" stop-opacity=".9"/><stop offset="1" stop-color="#ffd9b0" stop-opacity="0"/></radialGradient>
+      <filter id="swTitleShadow" x="-20%" y="-40%" width="140%" height="190%"><feDropShadow dx="0" dy="4" stdDeviation="7" flood-color="#4a3470" flood-opacity=".45"/></filter>
       <filter id="swIconShadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#3a2a5a" flood-opacity=".3"/></filter>
       <filter id="swFarBlur"><feGaussianBlur stdDeviation="3.2"/></filter>
       <filter id="swMidBlur"><feGaussianBlur stdDeviation="1.6"/></filter>
@@ -1395,8 +1396,16 @@ const SUBWAY_LINES = [   // first line plays when you arrive; tap Sienna for the
     x+=w+8+rnd()*24; } }
   el('rect',{x:0,y:HZ+8,width:MIDW*2,height:80,fill:'#c99fb6'},mid);
 
-  // app-logo signs on posts, spaced along the track
+  // "My skills." floats in the window first, then the app logos roll in after it
   const boards=$s('swBoards'), GAP=330, START=1300;
+  const swTitle=el('g',{},boards), swTitle2=el('g',{},boards);
+  const SANS={'font-family':'"Inter Tight","Helvetica Neue",Arial,sans-serif','font-size':86,'font-weight':400,'letter-spacing':'-3'},
+        SERIF={'font-family':'"Instrument Serif","Times New Roman",serif','font-size':96,'font-style':'italic'};
+  { const t=el('text',{x:0,y:0,'text-anchor':'middle',fill:'#fff',filter:'url(#swTitleShadow)'},swTitle);
+    el('tspan',SANS,t).textContent='My '; el('tspan',SERIF,t).textContent='skills.'; }
+  { // stacked version for narrow screens, so it fits under the handles beside Sienna
+    const t1=el('text',Object.assign({x:0,y:0,'text-anchor':'middle',fill:'#fff',filter:'url(#swTitleShadow)'},SANS),swTitle2); t1.textContent='My';
+    const t2=el('text',Object.assign({x:0,y:82,'text-anchor':'middle',fill:'#fff',filter:'url(#swTitleShadow)'},SERIF),swTitle2); t2.textContent='skills.'; }
   SKILL_APPS.forEach(([file,name],i)=>{
     const lift=(i%2)*26, g=el('g',{transform:`translate(${START+i*GAP} ${lift})`},boards);
     const img=el('image',{href:LOGO_SRC[file],x:-56,y:352,width:112,height:112,preserveAspectRatio:'xMidYMid meet',filter:'url(#swIconShadow)'},g);
@@ -1416,6 +1425,12 @@ const SUBWAY_LINES = [   // first line plays when you arrive; tap Sienna for the
   const SIT_AR=414/1174, CHAIRS=[174,312,451,588];   // centres of the blue seats (image units)
   function place(){ const asp=stage.clientWidth/stage.clientHeight, visW=Math.min(1199,675*asp), left=(1199-visW)/2;
     MH = visW>=800 ? 320 : 290; const hw=MH*SIT_AR/2;
+    // keep the title inside the visible part of the window (phones crop the car)
+    const wide=visW>=800; swTitle.style.display=wide?'':'none'; swTitle2.style.display=wide?'none':'';
+    if(wide) swTitle.setAttribute('transform','translate(548 438)');
+    else { const free=Math.max(120,(left+visW-14)-(MX+hw+14)), cx=(MX+hw+14+free/2).toFixed(1), k1=Math.min(.62,free/385);
+      if(k1>=.45){ swTitle.style.display=''; swTitle2.style.display='none'; swTitle.setAttribute('transform',`translate(${cx} 492) scale(${k1.toFixed(3)})`); }   // one line, below the handles
+      else { const k=Math.min(.6,free/250); swTitle2.setAttribute('transform',`translate(${cx} 452) scale(${k.toFixed(3)})`); } }
     MX = CHAIRS.find(c=>c-hw>=left+8) ?? CHAIRS[3];
     const FEET=708;
     mimg.setAttribute('width',MH*SIT_AR); mimg.setAttribute('height',MH);
