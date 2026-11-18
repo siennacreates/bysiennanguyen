@@ -635,6 +635,9 @@
   html, body, body * { cursor:url(cursor.png) 20 20, auto !important; }
   a, a *, button, button *, [role="button"], [role="button"] *, label, summary, .prod, .bc-dream, .tv-hit, .ct-portal, .ct-portal *, #cfCanvas.hover, #cm-c, #stMii, .st-mii, .about-mii, #stage
     { cursor:url(cursor_hover.png) 24 24, pointer !important; }
+  /* while pressing / just clicked: the melted Usagi */
+  html.clicking, html.clicking body, html.clicking body *, html.clicking #cfCanvas.hover, html.clicking #cm-c, html.clicking #stMii, html.clicking #stage
+    { cursor:url(cursor_click.png) 24 24, pointer !important; }
 </style>
 </head>
 <body class="locked">
@@ -1899,6 +1902,12 @@ const LINKEDIN_URL = 'https://www.linkedin.com/in/sienna-nguyen-b76392298/';
   document.addEventListener('visibilitychange',()=>{ if(!cur) return; document.hidden ? tracks[cur].pause() : sync(); });
   setInterval(sync,60000);   // switches tracks when the visitor's clock crosses 7am / 6pm
   paint();
+})();
+/* ---------- click feedback: the cursor turns into the melted Usagi while you click ---------- */
+(()=>{ const root=document.documentElement; let t=0, down=0;
+  addEventListener('pointerdown',e=>{ if(e.pointerType!=='mouse') return; clearTimeout(t); down=performance.now(); root.classList.add('clicking'); },true);
+  const up=()=>{ clearTimeout(t); t=setTimeout(()=>root.classList.remove('clicking'), Math.max(0,280-(performance.now()-down))); };
+  addEventListener('pointerup',up,true); addEventListener('pointercancel',up,true); addEventListener('blur',()=>root.classList.remove('clicking'));
 })();
 /* ---------- clock: visitor's local time ---------- */
 (()=>{ const T=document.getElementById('clockT'), A=document.getElementById('clockAP'), D=document.getElementById('clockD');
