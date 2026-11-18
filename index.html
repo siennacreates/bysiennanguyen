@@ -488,10 +488,11 @@
   .bc-face { position:absolute; inset:0; z-index:1; overflow:hidden; will-change:transform; background:#0b1530; }
   .bc-face.gone { display:none; }
   .bc-face video { position:absolute; display:block; object-fit:fill; }
-  .bc-world { position:absolute; left:0; top:0; will-change:transform; backface-visibility:hidden; transition:transform 5s cubic-bezier(.42,0,.22,1); }
+  .bc-world { position:absolute; left:0; top:0; will-change:transform; backface-visibility:hidden; contain:layout paint; transition:transform 5s cubic-bezier(.42,0,.22,1); }
   .bc-world.instant { transition:none; }
   .bc-sky { position:absolute; left:0; top:0; width:100%; background:linear-gradient(#060c22 0%, #0d1a3c 30%, #22396a 58%, #395787 76%, #395787 100%); overflow:hidden; }
-  .bc-star { position:absolute; width:var(--s); height:var(--s); border-radius:50%; background:#fff; box-shadow:0 0 6px 1px rgba(200,220,255,.8); opacity:.8; animation:bcTwinkle var(--d) ease-in-out var(--dl) infinite; }
+  .bc-star { position:absolute; width:calc(var(--s) * 3); height:calc(var(--s) * 3); margin:calc(var(--s) * -1); border-radius:50%; background:radial-gradient(closest-side,#fff 0 30%,rgba(210,225,255,.55) 45%,rgba(200,220,255,0)); opacity:.8; will-change:opacity,transform; animation:bcTwinkle var(--d) ease-in-out var(--dl) infinite; }
+  .bc-starfield { position:absolute; left:0; top:0; width:100%; pointer-events:none; }
   @keyframes bcTwinkle { 50% { opacity:.2; transform:scale(.6); } }
   .bc-moon { position:absolute; width:clamp(54px,7vw,96px); aspect-ratio:1; border-radius:50%; background:radial-gradient(circle at 38% 35%, #fffdf2, #f4ecd0 60%, #e6dcb8);
     box-shadow:0 0 40px 12px rgba(255,248,220,.35), 0 0 120px 50px rgba(190,210,255,.18); }
@@ -506,18 +507,18 @@
   /* dreamy projects in the sky */
   .bc-dreams { position:absolute; inset:0; z-index:4; pointer-events:none; }
   .bc-dream { position:absolute; width:var(--w); transform:translate(-50%,-50%); pointer-events:none; opacity:0; padding:0; border:0; background:none; color:inherit; cursor:pointer; font:inherit;
-    transition:opacity 1.6s ease, filter 1.6s ease; filter:blur(10px); }
-  .bc-dreams.on .bc-dream { opacity:1; filter:none; pointer-events:auto; }
+    transition:opacity 1.6s ease; }
+  .bc-dreams.on .bc-dream { opacity:1; pointer-events:auto; }
   .bc-dream .fl { display:block; animation:bcFloat var(--fd,7s) ease-in-out infinite; }
   @keyframes bcFloat { 0%,100% { transform:translateY(0) rotate(-.6deg); } 50% { transform:translateY(-12px) rotate(.6deg); } }
-  .bc-dream .scr { position:relative; display:block; border-radius:14px; overflow:hidden; aspect-ratio:var(--ar,16/9); opacity:.6; mix-blend-mode:screen;
-    filter:blur(1.4px) saturate(1.15) brightness(1.15); transition:opacity .4s, filter .4s, transform .4s;
+  .bc-dream .scr { position:relative; display:block; border-radius:14px; overflow:hidden; aspect-ratio:var(--ar,16/9); opacity:.62;
+    transition:opacity .4s, transform .4s;
     -webkit-mask-image:radial-gradient(ellipse 72% 72% at 50% 50%, #000 55%, transparent 100%); mask-image:radial-gradient(ellipse 72% 72% at 50% 50%, #000 55%, transparent 100%); }
   .bc-dream .scr video { width:100%; height:100%; object-fit:cover; display:block; }
   .bc-dream .glow { position:absolute; inset:-14%; border-radius:50%; background:radial-gradient(closest-side, rgba(190,200,255,.28), rgba(190,200,255,0)); pointer-events:none; }
   .bc-dream .ttl { display:block; margin-top:.5em; text-align:center; font:italic 400 clamp(15px,1.5vw,22px) "Instrument Serif","Times New Roman",serif; color:#f2f0ff;
     text-shadow:0 0 12px rgba(180,190,255,.9), 0 1px 3px rgba(0,0,30,.6); opacity:.85; }
-  .bc-dream:hover .scr, .bc-dream:focus-visible .scr { opacity:.82; filter:blur(.4px) saturate(1.15) brightness(1.15); transform:scale(1.03); }
+  .bc-dream:hover .scr, .bc-dream:focus-visible .scr { opacity:.85; transform:scale(1.03); }
   .bc-dream:focus-visible { outline:none; }
   .bc-dream.picked { opacity:0 !important; transition:opacity .25s; }
   #beach .sw-title { opacity:0; transition:opacity 1.2s ease .6s; text-shadow:0 2px 18px rgba(0,0,30,.55); }
@@ -644,6 +645,9 @@
   /* phones/tablets: skip frosted-glass blur, it is costly to redraw while things move */
   @media (pointer:coarse) { *, *::before, *::after { -webkit-backdrop-filter:none !important; backdrop-filter:none !important; }
     #prompt, .gal-sound, .gal-pad button, .tabs a, #keepMoving, #goInside, #goOutside, #toNextStop, #homeBtn, .homeLink, #go, #toNext, #cm-refill, #toGallery, .bgm-btn { background-color:rgba(60,55,110,.45); } }
+
+  /* pause looping decorations on pages that aren't on screen */
+  section.offscreen, section.offscreen * { animation-play-state:paused !important; }
 </style>
 </head>
 <body class="locked">
@@ -1798,12 +1802,20 @@ const PROJECTS = [   // edit freely. ar = video width / height
   const VW=1440, VH=932, HEAD={x:.537,y:.33}, HORIZON=.215;   // Sienna's head in the face shot, horizon in the ocean shot (fractions)
   let geo=null, stage=0, open=-1;   // stage: 0 = not started, 1 = talking, 1.5 = turning around, 2 = panned up
   // stars
-  for(let i=0;i<140;i++){ const s=document.createElement('i'); s.className='bc-star'; const r=Math.random();
-    Object.assign(s.style,{left:(Math.random()*100)+'%',top:(Math.pow(Math.random(),1.3)*62)+'%'}); s.style.setProperty('--s',(r<.85?1+Math.random()*1.5:2.5+Math.random()*1.5)+'px');
-    s.style.setProperty('--d',(2+Math.random()*4)+'s'); s.style.setProperty('--dl',(-Math.random()*5)+'s'); sky.appendChild(s); }
+  // stars: painted once onto a canvas (cheap to move during the pan), plus a handful that twinkle
+  const starCv=document.createElement('canvas'); starCv.className='bc-starfield'; sky.appendChild(starCv);
+  function paintStars(){ const w=sky.clientWidth, h=sky.clientHeight*.62, dpr=Math.min(devicePixelRatio,2); if(!w||!h) return;
+    starCv.width=w*dpr; starCv.height=h*dpr; starCv.style.height=h+'px'; const g=starCv.getContext('2d'); g.scale(dpr,dpr); let sd=5;
+    const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
+    for(let i=0;i<150;i++){ const x=rnd()*w, y=Math.pow(rnd(),1.3)*h, r=rnd()<.85?.5+rnd()*.8:1.2+rnd()*.8, a=.35+rnd()*.6;
+      const gr=g.createRadialGradient(x,y,0,x,y,r*3.2); gr.addColorStop(0,`rgba(255,255,255,${a})`); gr.addColorStop(.35,`rgba(220,230,255,${a*.5})`); gr.addColorStop(1,'rgba(200,215,255,0)');
+      g.fillStyle=gr; g.beginPath(); g.arc(x,y,r*3.2,0,6.283); g.fill(); } }
+  for(let i=0;i<16;i++){ const s=document.createElement('i'); s.className='bc-star';
+    Object.assign(s.style,{left:(Math.random()*100)+'%',top:(Math.pow(Math.random(),1.3)*55)+'%'}); s.style.setProperty('--s',(2+Math.random()*1.6)+'px');
+    s.style.setProperty('--d',(2.5+Math.random()*3.5)+'s'); s.style.setProperty('--dl',(-Math.random()*5)+'s'); sky.appendChild(s); }
   function layout(){ const W=sec.clientWidth, H=sec.clientHeight;
     const bh=Math.max(H, W*VH/VW), bw=bh*VW/VH, left=Math.min(0,Math.max(W-bw, W*.5-bw*.6)), skyH=H*1.15;
-    Object.assign(sky.style,{height:(skyH+bh*.35)+'px'}); Object.assign(vbox.style,{top:(skyH-2)+'px',left:left+'px',width:bw+'px',height:bh+'px'});
+    Object.assign(sky.style,{height:(skyH+bh*.35)+'px'}); paintStars(); Object.assign(vbox.style,{top:(skyH-2)+'px',left:left+'px',width:bw+'px',height:bh+'px'});
     Object.assign(world.style,{width:W+'px',height:(skyH+bh)+'px'});
     const t0=-(skyH+bh-H), t1=Math.min(0, H*(W<760?.81:.79)-(skyH+bh*HORIZON));
     const fl=Math.min(0,Math.max(W-bw, W*.5-bw*HEAD.x)), ft=(H-bh)/2;
@@ -1833,7 +1845,7 @@ const PROJECTS = [   // edit freely. ar = video width / height
     face.animate([{opacity:1},{opacity:0}],{duration:1500,easing:'ease-in-out',fill:'forwards'})
       .finished.then(()=>{ face.classList.add('gone'); faceV.pause(); setTimeout(pan,900); }); }
   function pan(){ if(stage===2) return; stage=2; world.classList.remove('instant'); requestAnimationFrame(()=>{ world.style.transform=`translate3d(0,${geo.t1}px,0)`; });
-    playPreviews(true); setTimeout(()=>{ dreams.classList.add('on'); sec.classList.add('panned'); },2800); setTimeout(()=>hint.classList.add('on'),4600); }
+    setTimeout(()=>{ playPreviews(true); dreams.classList.add('on'); sec.classList.add('panned'); },4300); setTimeout(()=>hint.classList.add('on'),6200); }
   sec.addEventListener('click',e=>{ if(stage===1 && !e.target.closest('a,button')) turn(); });   // tap to skip ahead
   // zoom into a project and play it
   function targetBox(ar){ const W=geo.W, H=geo.H, mw=W*(W<760?.94:.78), mh=H*(W<760?.6:.72); let w=mw, h=w/ar; if(h>mh){ h=mh; w=h*ar; } return { left:(W-w)/2, top:(H-h)/2-(W<760?0:H*.02), width:w, height:h }; }
@@ -1940,6 +1952,9 @@ const LINKEDIN_URL = 'https://www.linkedin.com/in/sienna-nguyen-b76392298/';
   const up=()=>{ clearTimeout(t); t=setTimeout(()=>root.classList.remove('clicking'), Math.max(0,280-(performance.now()-down))); };
   addEventListener('pointerup',up,true); addEventListener('pointercancel',up,true); addEventListener('blur',()=>root.classList.remove('clicking'));
 })();
+/* ---------- pause every page's looping animations while it's off screen ---------- */
+(()=>{ const io=new IntersectionObserver(es=>es.forEach(e=>e.target.classList.toggle('offscreen',!e.isIntersecting)),{rootMargin:'-2px'});
+  document.querySelectorAll('section').forEach(s=>io.observe(s)); })();
 /* ---------- clock: visitor's local time ---------- */
 (()=>{ const T=document.getElementById('clockT'), A=document.getElementById('clockAP'), D=document.getElementById('clockD');
   const tick=()=>{ const n=new Date(), h=n.getHours(), m=n.getMinutes();
