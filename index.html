@@ -192,6 +192,7 @@
   #store .about-say.show { transform:translateX(-50%) scale(1); }
   #store .about-say::after { left:calc(50% + var(--tx,0px)); top:auto; bottom:-13px; margin:0 0 0 -9px; width:18px; height:14px; clip-path:polygon(0 0,100% 0,50% 100%); }
   #store .sw-title { text-shadow:0 2px 18px rgba(0,0,0,.55); }
+  #subway .sw-title { top:27%; text-shadow:0 2px 18px rgba(20,30,70,.55), 0 1px 3px rgba(20,30,70,.45); }   /* sits at the handlebar */
   #goInside { position:absolute; z-index:6; right:clamp(18px,4vw,72px); bottom:clamp(26px,6.5vh,70px); padding:.62em 1.45em; font-size:clamp(13px,1.3vw,20px); cursor:pointer;
     opacity:0; transform:translateY(12px); pointer-events:none; transition:opacity .4s, transform .5s cubic-bezier(.3,1.6,.5,1); background:rgba(30,110,60,.35); }
   #goInside.show { opacity:1; transform:none; pointer-events:auto; }
